@@ -1,0 +1,2 @@
+必装
+pip install requests beautifulsoup4 flask flask-cors
