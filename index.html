@@ -53,113 +53,52 @@
             100% { transform: translate(40px, 40px); }
         }
 
-        /* 渐变光效 */
-        body::after {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
-            animation: gradientRotate 20s ease infinite;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.5;
+        /* 头部样式 */
+        header { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(59, 130, 246, 0.2); }
+        
+        /* 搜索栏玻璃拟态 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(226, 232, 240, 0.6);
         }
 
-        @keyframes gradientRotate {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(180deg); }
+        /* 公司卡片样式 */
+        .company-card {
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
         }
-
-        /* 内容层提升 */
-        header, main {
-            position: relative;
-            z-index: 10;
+        .company-card:hover {
+            border-left-color: #3b82f6;
+            transform: translateX(2px);
+            background-color: rgba(255, 255, 255, 1) !important;
         }
-
-        /* 搜索栏容器样式 */
-        .search-container {
-            padding-bottom: 15px !important;
-            margin-bottom: 10px !important;
-        }
-
-        /* 搜索栏样式 */
-        .search-bar {
-            margin-bottom: 0 !important;
-        }
-
-        /* 岗位卡片样式 */
-        .job-card {
-            margin-bottom: 5px !important;
-            padding: 8px 12px !important;
-        }
-
-        /* 复选框样式和对齐 */
-        .job-card input[type="checkbox"] {
-            margin-top: 2px;
-            cursor: pointer;
-            accent-color: #3b82f6;
-        }
-
-        .job-card label {
-            cursor: pointer;
-            user-select: none;
-        }
-
-        /* 确保复选框和内容对齐 */
-        .job-checkbox-wrapper {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-        }
-
-        /* 第一个岗位卡片的上边距 */
-        #jobList > .job-card:first-child {
-            margin-top: 10px !important;
-        }
-
-        /* 职位列表容器 - 可滚动 */
-        #jobList {
-            overflow-y: auto;
-            flex: 1;
-            min-height: 0;
-            margin-top: 0;
-        }
-
-        /* 岗位列表容器，直接加顶部内边距 */
-        .job-list {
-            padding-top: 30px !important; /* !important强制覆盖原有样式 */
-        }
-
-        /* 确保主容器高度适配一屏 */
-        #main-view {
-            height: calc(100vh - 70px);
-            display: flex;
-            flex-direction: row;
+        
+        /* 下拉列表动画 */
+        .job-dropdown {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            max-height: 0;
+            opacity: 0;
             overflow: hidden;
         }
-
-        /* 左侧职位列表区域 */
-        #main-view > .flex-1 {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
+        .job-dropdown.open {
+            max-height: 2000px; /* 增加高度以容纳更多内容 */
+            opacity: 1;
         }
+        
+        /* 旋转箭头 */
+        .arrow-icon { transition: transform 0.3s ease; }
+        .arrow-icon.rotate { transform: rotate(180deg); }
+
     </style>
 </head>
 <body class="font-sans text-slate-900 pb-20">
 
     <!-- 顶部导航 -->
-    <header class="bg-slate-900/95 backdrop-blur-sm text-white shadow-lg sticky top-0 z-50 border-b border-blue-500/20">
+    <header class="text-white shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <div class="bg-blue-600 p-1.5 rounded-lg">
-                    <!-- SVG Icon: Send -->
                     <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 </div>
                 <span class="font-bold text-xl tracking-tight">DeJob <span class="text-blue-400 font-light">Aggregator</span></span>
@@ -167,7 +106,6 @@
             <div class="flex items-center gap-4 text-sm text-slate-400">
                 <span class="hidden sm:inline">数据源: t.me/DeJob_official</span>
                 <div class="flex items-center gap-1">
-                    <!-- 状态指示器 -->
                     <div id="statusIndicator" class="h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></div>
                     <span id="statusText" class="text-xs">Connecting...</span>
                 </div>
@@ -175,79 +113,63 @@
         </div>
     </header>
 
-    <!-- 主体内容 -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-2" style="height: calc(100vh - 56px);">
-        
-        <!-- 视图容器 -->
-        <div id="main-view" class="flex flex-col lg:flex-row gap-6">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-4" style="min-height: calc(100vh - 56px);">
+        <div id="main-view" class="flex flex-col lg:flex-row gap-6 h-full">
             
             <!-- 左侧：职位列表 -->
-            <div class="flex-1">
-                
+            <div class="flex-1 flex flex-col h-full overflow-hidden">
                 <!-- 筛选栏 -->
-                <div class="search-container search-bar bg-white/95 backdrop-blur-sm p-3 rounded-xl shadow-sm border border-slate-200/50 mb-3 sticky top-16 z-40">
+                <div class="glass-panel p-3 rounded-xl shadow-sm mb-3 sticky top-0 z-40">
                     <div class="flex flex-col md:flex-row gap-3 justify-between items-center">
-                        <!-- 搜索 -->
                         <div class="relative w-full md:w-1/3">
                             <svg class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                            <input type="text" id="searchInput" placeholder="搜索职位、公司..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all">
+                            <input type="text" id="searchInput" placeholder="搜索公司、岗位..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                         </div>
-                        
-                        <!-- 下拉筛选 -->
-                        <div class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                        <div class="flex gap-2 w-full md:w-auto overflow-x-auto">
                             <select id="categorySelect" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none cursor-pointer">
                                 <option value="All">所有岗位</option>
                                 <option value="Dev">开发 (Dev)</option>
-                                <option value="Design">设计 (Design)</option>
                                 <option value="Marketing">市场 (Marketing)</option>
-                                <option value="Operation">运营 (Operation)</option>
                             </select>
                             <select id="typeSelect" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 focus:outline-none cursor-pointer">
                                 <option value="All">所有方式</option>
                                 <option value="全职">全职</option>
-                                <option value="兼职">兼职</option>
                                 <option value="远程">远程</option>
-                                <option value="实习">实习</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <!-- 列表头部 -->
-                <div class="flex justify-between items-center mb-2 px-1">
-                    <button onclick="toggleSelectAll()" id="selectAllBtn" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
-                        全选本页
-                    </button>
-                    <span id="jobCount" class="text-xs text-slate-400">加载中...</span>
+                <!-- 统计栏 -->
+                <div class="flex justify-between items-center mb-2 px-1 text-white/80">
+                    <button onclick="toggleSelectAll()" id="selectAllBtn" class="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">全选本页</button>
+                    <span id="jobCount" class="text-xs">加载中...</span>
                 </div>
 
-                <!-- 职位列表容器 -->
-                <div id="jobList" class="job-list">
-                    <!-- JS 将在这里动态渲染职位卡片 -->
+                <!-- 职位列表容器 (滚动区域) -->
+                <div id="jobList" class="flex-1 overflow-y-auto space-y-3 pb-10 pr-1">
                     <div class="text-center py-10 text-slate-400 animate-pulse">正在从后端获取数据...</div>
                 </div>
             </div>
 
-            <!-- 右侧：侧边栏 (操作区) -->
+            <!-- 右侧：侧边栏 -->
             <div class="w-full lg:w-80 flex-shrink-0">
-                <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow-sm border border-slate-200/50 p-4 sticky top-16">
+                <div class="glass-panel p-4 rounded-xl sticky top-4">
                     <h2 class="text-base font-bold text-slate-800 mb-3 flex items-center gap-2">
                         <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                         投递助手
                     </h2>
 
-                    <!-- 简历上传区域 -->
+                    <!-- 简历上传 -->
                     <div class="mb-4">
                         <label class="block text-xs font-medium text-slate-700 mb-1.5">第一步：上传简历 (PDF)</label>
                         <div class="relative group">
                             <input type="file" id="resumeInput" accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                             <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-lg p-3 text-center transition-colors bg-slate-50 group-hover:border-blue-400">
-                                <!-- 未上传状态 -->
                                 <div id="uploadPlaceholder">
                                     <svg class="h-6 w-6 mx-auto mb-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                                    <p class="text-sm text-slate-500">点击或拖拽上传</p>
+                                    <p class="text-sm text-slate-500">点击上传</p>
                                 </div>
-                                <!-- 已上传状态 (默认隐藏) -->
                                 <div id="fileInfo" class="hidden flex items-center justify-center gap-2 text-green-700">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                     <span id="fileName" class="text-sm font-medium truncate max-w-[150px]"></span>
@@ -256,489 +178,321 @@
                         </div>
                     </div>
 
-                    <!-- 选中统计 -->
-                    <div class="mb-4">
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">第二步：选择职位</label>
-                        <div class="bg-slate-50 rounded-lg p-2.5 flex justify-between items-center border border-slate-100">
-                            <span class="text-sm text-slate-600">已选职位</span>
+                    <div class="mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-slate-600">已选岗位</span>
                             <span id="selectedCount" class="text-xl font-bold text-blue-600">0</span>
                         </div>
+                        <button id="clearBtn" onclick="clearAllSelections()" class="w-full py-1.5 px-3 rounded text-xs font-bold text-slate-500 bg-slate-200 hover:bg-slate-300 transition-colors">
+                            清空选择
+                        </button>
                     </div>
 
-                    <!-- 清除按钮 -->
-                    <button id="clearBtn" onclick="clearAllSelections()" class="w-full py-2.5 px-4 rounded-lg font-bold text-white shadow-lg transition-all bg-slate-300 cursor-pointer text-sm mb-2 hover:bg-slate-400">
-                        一键清除
-                    </button>
-
-                    <!-- 投递按钮 -->
-                    <button id="applyBtn" onclick="startApplying()" disabled class="w-full py-2.5 px-4 rounded-lg font-bold text-white shadow-lg shadow-blue-500/30 transition-all bg-slate-300 cursor-not-allowed text-sm">
+                    <button id="applyBtn" onclick="startApplying()" disabled class="w-full py-2.5 px-4 rounded-lg font-bold text-white shadow-lg transition-all bg-slate-300 cursor-not-allowed text-sm">
                         一键投递
                     </button>
-                    <p class="mt-2 text-xs text-slate-400 text-center">提示：系统将自动解析职位邮箱并发送简历。</p>
                 </div>
             </div>
         </div>
 
-        <!-- 发送进度视图 (默认隐藏) -->
-        <div id="sending-view" class="hidden max-w-2xl mx-auto bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden">
+        <!-- 进度视图 -->
+        <div id="sending-view" class="hidden max-w-2xl mx-auto bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden mt-10">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-slate-800" id="progressTitle">投递任务队列</h2>
                 <button onclick="resetView()" class="text-sm text-blue-600 hover:underline">返回列表</button>
             </div>
-            
             <div class="h-1.5 w-full bg-slate-100">
                 <div id="progressBar" class="h-full bg-green-500 transition-all duration-300 ease-out" style="width: 0%"></div>
             </div>
-
-            <div id="logContainer" class="max-h-[500px] overflow-y-auto p-0">
-                <!-- 日志将插入这里 -->
-            </div>
+            <div id="logContainer" class="max-h-[500px] overflow-y-auto p-0"></div>
         </div>
-
     </main>
 
-    <!-- JavaScript 逻辑 -->
     <script>
-        // --- 演示/兜底数据 (当后端断开时使用) ---
-        // 这里的 title 使用了 "Marisa" 这种项目名格式，而不是之前的 "Solidity Engineer"
+        // 兜底数据
         const FALLBACK_JOBS = [
-            { id: 1, title: "Marisa (示例)", company: "DeFi Protocol X", type: "全职", location: "远程 (Global)", tags: ["Dev", "Solidity"], salary: "1800U", date: "2023-11-01", email: "hr@marisa-project.io", source: "Mock Data" },
-            { id: 2, title: "GameFi Studio", company: "GameFi Studio", type: "兼职", location: "远程 (APAC)", tags: ["Marketing"], salary: "2000U", date: "2023-10-23", email: "jobs@very-long-domain-name-example.com", source: "Mock Data" },
+            { id: 1, company: "Marisa", title: "Solidity Engineer", salary: "1800U", date: "2023-11-01", email: "hr@marisa.io", tags: ["Dev", "Remote"], raw_content: "#Marisa\nDeFi Project recruiting...\nWe need solidity dev." },
+            { id: 2, company: "Marisa", title: "Marketing Manager", salary: "2000U", date: "2023-11-01", email: "hr@marisa.io", tags: ["Marketing"], raw_content: "#Marisa\nDeFi Project recruiting...\nWe need marketing manager." },
+            { id: 3, company: "GameFi Studio", title: "Community Mod", salary: "500U", date: "2023-10-23", email: "jobs@gamefi.com", tags: ["Community"], raw_content: "GameFi Studio hiring mods." },
         ];
 
-        // --- 状态管理 ---
         let currentJobs = [];
+        let groupedJobs = {}; 
         let selectedIds = new Set();
         let resumeFile = null;
-        // 后端 API 地址
         const API_BASE_URL = 'http://localhost:5000/api'; 
 
-        // --- 初始化 ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadJobsData(); // 尝试加载真实数据
+            loadJobsData();
             setupEventListeners();
         });
 
-        // --- 数据加载核心逻辑 (含错误处理) ---
         async function loadJobsData() {
-            const listEl = document.getElementById('jobList');
-            const statusIndicator = document.getElementById('statusIndicator');
             const statusText = document.getElementById('statusText');
+            const indicator = document.getElementById('statusIndicator');
 
             try {
-                // 1. 尝试从 Python 后端获取数据
                 const response = await fetch(`${API_BASE_URL}/jobs`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error("API Error");
                 const data = await response.json();
                 
                 if (Array.isArray(data) && data.length > 0) {
                     currentJobs = data;
-                    console.log("成功连接后端，加载了", data.length, "条数据");
-                    
-                    // 更新状态指示器：绿色 (Live)
-                    statusIndicator.className = "h-2 w-2 rounded-full bg-green-500 animate-pulse";
+                    indicator.className = "h-2 w-2 rounded-full bg-green-500 animate-pulse";
                     statusText.innerText = "Live Connected";
                 } else {
-                    console.log("后端返回空数据，使用演示数据");
                     currentJobs = [...FALLBACK_JOBS];
                     statusText.innerText = "Live (Empty)";
                 }
-
             } catch (error) {
-                // 2. 如果连接失败（报错），回退到演示数据
-                console.warn("连接后端失败，已切换到演示模式。错误详情:", error);
-                
+                console.warn("Fallback mode", error);
                 currentJobs = [...FALLBACK_JOBS];
-                
-                // 更新状态指示器：灰色 (Demo Mode)
-                statusIndicator.className = "h-2 w-2 rounded-full bg-slate-400";
+                indicator.className = "h-2 w-2 rounded-full bg-slate-400";
                 statusText.innerText = "Demo Mode";
             }
-            
             renderJobs();
         }
-        
-        // 渲染职位列表
+
         function renderJobs() {
             const listEl = document.getElementById('jobList');
             const searchVal = document.getElementById('searchInput').value.toLowerCase();
             const catVal = document.getElementById('categorySelect').value;
-            const typeVal = document.getElementById('typeSelect').value;
 
-            // 筛选
-            const filteredJobs = currentJobs.filter(job => {
-                const title = (job.title || "").toLowerCase();
-                const company = (job.company || "").toLowerCase();
-                const raw = (job.raw_content || "").toLowerCase(); // 允许搜索原始内容
-                const tags = Array.isArray(job.tags) ? job.tags : [];
-                const type = job.type || "";
-
-                const matchSearch = !searchVal || title.includes(searchVal) || company.includes(searchVal) || raw.includes(searchVal);
-                const matchCat = catVal === 'All' || tags.some(t => t.includes(catVal));
-                const matchType = typeVal === 'All' || type.includes(typeVal);
-                return matchSearch && matchCat && matchType;
+            // 1. 筛选
+            const filtered = currentJobs.filter(job => {
+                const text = (job.company + job.title + job.raw_content).toLowerCase();
+                const matchSearch = !searchVal || text.includes(searchVal);
+                const matchCat = catVal === 'All' || (job.tags||[]).some(t => t.includes(catVal));
+                return matchSearch && matchCat;
             });
 
-            // 更新 UI 统计
-            document.getElementById('jobCount').innerText = `显示 ${filteredJobs.length} 条数据`;
-            
-            // 清空列表
+            // 2. 分组：按 Company 聚合
+            groupedJobs = filtered.reduce((acc, job) => {
+                // 清洗公司名，去掉 #标签
+                let cleanCompany = (job.company || "其他项目").replace(/#.*/, '').trim();
+                cleanCompany = cleanCompany.replace(/[^\w\s\u4e00-\u9fa5]/g, '').trim();
+                if (!cleanCompany) cleanCompany = "其他项目";
+
+                if (!acc[cleanCompany]) acc[cleanCompany] = [];
+                acc[cleanCompany].push(job);
+                return acc;
+            }, {});
+
+            // 3. 渲染
+            document.getElementById('jobCount').innerText = `共 ${Object.keys(groupedJobs).length} 个项目，${filtered.length} 个岗位`;
             listEl.innerHTML = '';
 
-            if (filteredJobs.length === 0) {
-                listEl.innerHTML = `<div class="text-center py-10 text-slate-400">没有找到符合条件的职位</div>`;
-                // 即使列表为空，也要更新选中计数（可能还有已选中的岗位在筛选范围外）
-                updateSelectedCount();
-                updateActionState();
+            if (Object.keys(groupedJobs).length === 0) {
+                listEl.innerHTML = `<div class="text-center py-10 text-slate-400">无匹配结果</div>`;
                 return;
             }
 
-            // 生成 HTML
-            filteredJobs.forEach(job => {
-                const isSelected = selectedIds.has(job.id);
-                const card = document.createElement('div');
-                card.className = `job-card fade-in group relative bg-white/95 backdrop-blur-sm rounded-xl border transition-all duration-200 hover:shadow-md border-slate-200/50`;
-                // 如果已选中，设置选中状态的样式
-                if (isSelected) {
-                    card.style.backgroundColor = '#f0f0f0';
-                    card.style.borderColor = '#409EFF';
-                    card.style.borderWidth = '1px';
-                }
-                // 移除卡片的onclick事件，只让复选框和标签响应点击
+            Object.keys(groupedJobs).forEach(company => {
+                const jobs = groupedJobs[company];
+                const latestDate = jobs[0].date || "";
+                // 提取公司简介 (取第一条数据的原始内容，做简单截断)
+                const introText = (jobs[0].raw_content || "暂无简介").substring(0, 300) + "...";
                 
-                // 过滤标签：只保留核心标签（远程、兼职、全职等），最多3-4个
-                const allTags = Array.isArray(job.tags) ? job.tags : [];
-                const coreTagKeywords = ['远程', '兼职', '全职', '实习', 'Remote', 'Part-time', 'Full-time', 'Intern', 'Dev', 'Design', 'Marketing'];
-                const coreTags = allTags.filter(tag => {
-                    const tagLower = String(tag).toLowerCase();
-                    return coreTagKeywords.some(keyword => tagLower.includes(keyword.toLowerCase()));
-                }).slice(0, 4); // 最多保留4个
+                const isGroupSelected = jobs.every(j => selectedIds.has(j.id));
+                const selectedCountInGroup = jobs.filter(j => selectedIds.has(j.id)).length;
                 
-                const tagsHtml = coreTags.map(tag => 
-                    `<span class="px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-600 mr-2">#${tag}</span>`
-                ).join('');
-
-                // 构建信息行（只保留邮箱）
-                const infoItems = [];
-                if (job.email) {
-                    infoItems.push(`<span class="flex items-center gap-1 text-blue-600 break-all text-xs">📧 ${job.email}</span>`);
-                }
-                const infoRow = infoItems.length > 0 ? `<div class="flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-slate-500 mb-2">${infoItems.join('')}</div>` : '';
-
-                // 构建岗位链接（在标签下方显示）
-                const jobLink = job.job_link || job.link || job.source_link || job.url || '';
-                const jobLinkHtml = jobLink ? `<div class="mt-2 pointer-events-auto"><a href="${jobLink}" target="_blank" onclick="event.stopPropagation();" class="text-blue-600 hover:underline text-xs">🔗 岗位链接</a></div>` : '';
-
-                // 使用岗位id生成唯一的复选框id
-                const checkboxId = `checkbox-${job.id}`;
-                const labelId = `label-${job.id}`;
+                const groupCard = document.createElement('div');
+                groupCard.className = "company-card bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200/50 overflow-hidden shadow-sm";
                 
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="job-checkbox-wrapper flex-1 min-w-0">
-                            <div class="flex-shrink-0 pt-0.5">
-                                <input type="checkbox" id="${checkboxId}" name="selected-jobs" value="${job.id}" ${isSelected ? 'checked' : ''} 
-                                       class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                const safeId = company.replace(/[^a-zA-Z0-9]/g, '_') + Math.floor(Math.random() * 1000);
+                
+                groupCard.innerHTML = `
+                    <!-- 公司头部 -->
+                    <div class="p-4 cursor-pointer flex justify-between items-center bg-slate-50/80 hover:bg-slate-100 transition-colors" 
+                         onclick="toggleDropdown('${safeId}')">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md">
+                                ${company.substring(0, 1).toUpperCase()}
                             </div>
-                            <label for="${checkboxId}" id="${labelId}" class="flex-1 min-w-0 cursor-pointer">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <h3 class="font-bold text-slate-800 text-base group-hover:text-blue-600 transition-colors" title="${job.title || "未知项目"}">
-                                        ${job.title || "未知项目"}
-                                    </h3>
-                                    ${job.company ? `<span class="text-red-600 text-sm font-medium">${job.company}</span>` : ''}
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-lg tracking-tight">${company}</h3>
+                                <div class="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+                                    <span class="bg-white/50 px-2 py-0.5 rounded border border-slate-200/50">${jobs.length} 个岗位</span>
+                                    <span class="text-slate-400">• ${latestDate}</span>
+                                    ${selectedCountInGroup > 0 ? `<span class="text-blue-600 font-bold ml-1">已选 ${selectedCountInGroup}</span>` : ''}
                                 </div>
-                            </label>
+                            </div>
                         </div>
-                        <div class="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2 pointer-events-none">
-                           <!-- 日期 -->
-                           ${job.date ? `<div class="text-slate-500 text-xs">${job.date}</div>` : ''}
-                           <!-- 薪资气泡 -->
-                           ${job.salary ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">${job.salary}</span>` : ''}
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2 mr-2" onclick="event.stopPropagation()">
+                                <label for="group-chk-${safeId}" class="text-xs font-medium text-slate-500 cursor-pointer select-none">全选</label>
+                                <input type="checkbox" id="group-chk-${safeId}" 
+                                       ${isGroupSelected ? 'checked' : ''} 
+                                       onchange="toggleGroupSelection('${company}', this.checked)"
+                                       class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                            </div>
+                            <div class="h-8 w-8 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
+                                <svg id="arrow-${safeId}" class="arrow-icon h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
                         </div>
                     </div>
-                    <div class="pl-6 pointer-events-none">
-                        ${infoRow}
-                        ${tagsHtml ? `<div class="flex flex-wrap gap-1.5 mb-2">${tagsHtml}</div>` : ''}
-                        ${jobLinkHtml}
+
+                    <!-- 下拉内容区 (左右布局) -->
+                    <div id="dropdown-${safeId}" class="job-dropdown bg-white border-t border-slate-100">
+                        <div class="flex flex-col md:flex-row gap-0 md:gap-4 p-0 md:p-4">
+                            
+                            <!-- 左侧：公司简介 (35%) -->
+                            <div class="md:w-[35%] bg-slate-50/50 p-4 rounded-lg border border-slate-100/50 mb-2 md:mb-0">
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">公司简介 / Company Intro</h4>
+                                <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line font-sans">${introText}</p>
+                            </div>
+
+                            <!-- 右侧：岗位列表 (65%) -->
+                            <div class="md:w-[65%] space-y-2">
+                                ${jobs.map(job => {
+                                    const isSel = selectedIds.has(job.id);
+                                    // 前端清洗岗位名称，去除#
+                                    let cleanTitle = (job.title || "岗位详情").replace(/#.*/, '').trim();
+                                    return `
+                                    <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50/50 transition-colors border border-slate-100 hover:border-blue-200 bg-white">
+                                        <input type="checkbox" value="${job.id}" ${isSel ? 'checked' : ''}
+                                               onchange="toggleSingleSelection(${job.id}, this.checked)"
+                                               class="mt-1.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 cursor-pointer">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex justify-between items-start mb-1">
+                                                <!-- 岗位名称 (标题) - 强制无 # -->
+                                                <h4 class="font-bold text-sm text-slate-800 flex-1 mr-2">${cleanTitle}</h4>
+                                                <span class="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm border border-green-200">${job.salary}</span>
+                                            </div>
+                                            
+                                            <div class="text-xs text-slate-500 flex items-center gap-2 mb-2">
+                                                <span class="text-blue-600 font-medium break-all bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">📧 ${job.email}</span>
+                                            </div>
+
+                                            <div class="flex flex-wrap gap-1.5">
+                                                ${(job.tags||[]).map(t => `<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 border border-slate-200">#${t}</span>`).join('')}
+                                            </div>
+                                            
+                                            <!-- 已移除 原始内容预览 (Intro) -->
+                                        </div>
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
                     </div>
                 `;
-                
-                // 为复选框添加事件监听器（独立处理，不触发全选）
-                const checkbox = card.querySelector(`#${checkboxId}`);
-                if (checkbox) {
-                    checkbox.addEventListener('change', function(e) {
-                        e.stopPropagation();
-                        // 确保jobId是正确类型（可能是数字或字符串）
-                        const jobId = isNaN(this.value) ? this.value : (typeof job.id === 'number' ? parseInt(this.value) : this.value);
-                        if (this.checked) {
-                            selectedIds.add(jobId);
-                        } else {
-                            selectedIds.delete(jobId);
-                        }
-                        // 只更新当前卡片的样式，不重新渲染整个列表
-                        updateCardStyle(card, this.checked);
-                        // 实时更新选中计数
-                        updateSelectedCount();
-                        updateActionState();
-                    });
-                }
-                
-                // 为label添加点击事件（点击标签也能选中/取消）
-                const label = card.querySelector(`#${labelId}`);
-                if (label) {
-                    label.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const checkbox = document.getElementById(checkboxId);
-                        if (checkbox) {
-                            checkbox.checked = !checkbox.checked;
-                            checkbox.dispatchEvent(new Event('change'));
-                        }
-                    });
-                }
-                
-                listEl.appendChild(card);
+                listEl.appendChild(groupCard);
             });
-            // 渲染完成后，实时更新选中计数
-            updateSelectedCount();
             updateActionState();
         }
 
-        // 更新单个卡片样式（不重新渲染整个列表）
-        function updateCardStyle(card, isSelected) {
-            if (isSelected) {
-                // 选中状态：浅灰色背景 + 淡蓝色边框
-                card.style.backgroundColor = '#f0f0f0';
-                card.style.borderColor = '#409EFF';
-                card.style.borderWidth = '1px';
+        function toggleDropdown(id) {
+            const dropdown = document.getElementById(`dropdown-${id}`);
+            const arrow = document.getElementById(`arrow-${id}`);
+            if (dropdown.classList.contains('open')) {
+                dropdown.classList.remove('open');
+                arrow.classList.remove('rotate');
             } else {
-                // 未选中状态：恢复默认样式
-                card.style.backgroundColor = '';
-                card.style.borderColor = '';
-                card.style.borderWidth = '';
+                dropdown.classList.add('open');
+                arrow.classList.add('rotate');
             }
         }
 
-        // 交互逻辑：选择职位（保留用于全选功能）
-        function toggleSelect(id) {
-            if (selectedIds.has(id)) {
-                selectedIds.delete(id);
-            } else {
-                selectedIds.add(id);
-            }
-            renderJobs(); // 全选时重新渲染
-        }
+        window.toggleGroupSelection = (companyName, isChecked) => {
+            const jobs = groupedJobs[companyName];
+            jobs.forEach(job => {
+                isChecked ? selectedIds.add(job.id) : selectedIds.delete(job.id);
+            });
+            renderJobs();
+        };
 
-        // 交互逻辑：全选/反选
+        window.toggleSingleSelection = (id, isChecked) => {
+            isChecked ? selectedIds.add(id) : selectedIds.delete(id);
+            renderJobs();
+        };
+
         function toggleSelectAll() {
-            const btn = document.getElementById('selectAllBtn');
-            const searchVal = document.getElementById('searchInput').value.toLowerCase();
-            const catVal = document.getElementById('categorySelect').value;
-            const typeVal = document.getElementById('typeSelect').value;
-            
-            // 使用和renderJobs相同的筛选逻辑
-            const filteredJobs = currentJobs.filter(job => {
-                const title = (job.title || "").toLowerCase();
-                const company = (job.company || "").toLowerCase();
-                const raw = (job.raw_content || "").toLowerCase();
-                const tags = Array.isArray(job.tags) ? job.tags : [];
-                const type = job.type || "";
-
-                const matchSearch = !searchVal || title.includes(searchVal) || company.includes(searchVal) || raw.includes(searchVal);
-                const matchCat = catVal === 'All' || tags.some(t => t.includes(catVal));
-                const matchType = typeVal === 'All' || type.includes(typeVal);
-                return matchSearch && matchCat && matchType;
-            });
-            
-            const allIds = filteredJobs.map(j => j.id);
-            const allSelected = allIds.every(id => selectedIds.has(id));
-            
+            const allJobs = Object.values(groupedJobs).flat();
+            const allSelected = allJobs.every(j => selectedIds.has(j.id));
             if (allSelected) {
-                // 取消全选
-                allIds.forEach(id => {
-                    selectedIds.delete(id);
-                    const checkbox = document.getElementById(`checkbox-${id}`);
-                    if (checkbox) {
-                        checkbox.checked = false;
-                        const card = checkbox.closest('.job-card');
-                        if (card) updateCardStyle(card, false);
-                    }
-                });
-                btn.innerText = "全选本页";
+                allJobs.forEach(j => selectedIds.delete(j.id));
             } else {
-                // 全选
-                allIds.forEach(id => {
-                    selectedIds.add(id);
-                    const checkbox = document.getElementById(`checkbox-${id}`);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                        const card = checkbox.closest('.job-card');
-                        if (card) updateCardStyle(card, true);
-                    }
-                });
-                btn.innerText = "取消全选";
+                allJobs.forEach(j => selectedIds.add(j.id));
             }
-            // 实时更新选中计数
-            updateSelectedCount();
-            updateActionState();
+            renderJobs();
         }
 
-        // 交互逻辑：文件上传
-        function setupEventListeners() {
-            ['searchInput', 'categorySelect', 'typeSelect'].forEach(id => {
-                document.getElementById(id).addEventListener('input', renderJobs);
-            });
-
-            const fileInput = document.getElementById('resumeInput');
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                handleFile(file);
-            });
-        }
-
-        function handleFile(file) {
-            if (file && file.type === 'application/pdf') {
-                resumeFile = file;
-                document.getElementById('uploadPlaceholder').classList.add('hidden');
-                document.getElementById('fileInfo').classList.remove('hidden');
-                document.getElementById('fileName').innerText = file.name;
-                document.getElementById('dropZone').classList.add('border-green-400', 'bg-green-50');
-            } else {
-                alert('请上传 PDF 格式的文件');
-            }
-            updateActionState();
-        }
-
-        // 实时统计所有选中复选框的数量
-        function updateSelectedCount() {
-            const countEl = document.getElementById('selectedCount');
-            // 查询所有name="selected-jobs"且checked=true的复选框
-            const checkedBoxes = document.querySelectorAll('input[name="selected-jobs"]:checked');
-            const count = checkedBoxes.length;
-            
-            // 更新显示的数字
-            countEl.innerText = count;
-            
-            return count;
-        }
-
-        // 一键清除所有选中的岗位
         function clearAllSelections() {
-            // 获取所有选中的复选框
-            const checkedBoxes = document.querySelectorAll('input[name="selected-jobs"]:checked');
-            
-            // 取消所有复选框的选中状态
-            checkedBoxes.forEach(checkbox => {
-                checkbox.checked = false;
-                // 触发change事件以更新卡片样式
-                checkbox.dispatchEvent(new Event('change'));
-            });
-            
-            // 清空selectedIds集合
             selectedIds.clear();
-            
-            // 更新所有卡片的样式（恢复未选中状态）
-            const allCards = document.querySelectorAll('.job-card');
-            allCards.forEach(card => {
-                updateCardStyle(card, false);
-            });
-            
-            // 更新计数和按钮状态
-            updateSelectedCount();
-            updateActionState();
+            renderJobs();
         }
 
-        // 更新按钮状态
         function updateActionState() {
+            const count = selectedIds.size;
+            document.getElementById('selectedCount').innerText = count;
             const btn = document.getElementById('applyBtn');
             const clearBtn = document.getElementById('clearBtn');
-            // 使用实时统计函数获取准确的选中数量
-            const count = updateSelectedCount();
-
-            // 更新"一键清除"按钮样式
-            if (count > 0) {
-                // 有选中岗位时：蓝色样式（和"一键投递"一样）
-                clearBtn.classList.remove('bg-slate-300', 'hover:bg-slate-400');
-                clearBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'hover:-translate-y-0.5', 'shadow-blue-500/30');
-            } else {
-                // 未选中岗位时：灰色样式
-                clearBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'hover:-translate-y-0.5', 'shadow-blue-500/30');
-                clearBtn.classList.add('bg-slate-300', 'hover:bg-slate-400');
-            }
-
-            // 更新"一键投递"按钮状态
+            
             if (count > 0 && resumeFile) {
                 btn.disabled = false;
-                btn.classList.remove('bg-slate-300', 'cursor-not-allowed');
-                btn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'hover:-translate-y-0.5');
-                btn.innerText = `一键投递 (${count})`;
+                btn.className = "w-full py-2.5 px-4 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:-translate-y-0.5 transition-all";
+                btn.innerText = `投递 (${count})`;
             } else {
                 btn.disabled = true;
-                btn.classList.add('bg-slate-300', 'cursor-not-allowed');
-                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'hover:-translate-y-0.5');
+                btn.className = "w-full py-2.5 px-4 rounded-lg font-bold text-white bg-slate-300 cursor-not-allowed";
                 btn.innerText = "一键投递";
             }
+
+            if (count > 0) {
+                clearBtn.className = "w-full py-1.5 px-3 rounded text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-colors mb-2";
+            } else {
+                clearBtn.className = "w-full py-1.5 px-3 rounded text-xs font-bold text-slate-500 bg-slate-200 hover:bg-slate-300 transition-colors mb-2";
+            }
         }
 
-        // 模拟 + 真实投递过程
-        async function startApplying() {
-            if (!resumeFile || selectedIds.size === 0) return;
+        function setupEventListeners() {
+            const resumeInput = document.getElementById('resumeInput');
+            if (resumeInput) {
+                resumeInput.addEventListener('change', (e) => {
+                    if (e.target.files[0]) {
+                        resumeFile = e.target.files[0];
+                        document.getElementById('uploadPlaceholder').classList.add('hidden');
+                        document.getElementById('fileInfo').classList.remove('hidden');
+                        document.getElementById('fileName').innerText = resumeFile.name;
+                        updateActionState();
+                    }
+                });
+            }
+            ['searchInput', 'categorySelect'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', renderJobs);
+            });
+        }
 
+        async function startApplying() {
             document.getElementById('main-view').classList.add('hidden');
             document.getElementById('sending-view').classList.remove('hidden');
+            const log = document.getElementById('logContainer');
+            log.innerHTML = '';
             
-            const logContainer = document.getElementById('logContainer');
-            const progressBar = document.getElementById('progressBar');
-            const progressTitle = document.getElementById('progressTitle');
-            
-            logContainer.innerHTML = '';
-            
-            // 向后端发送请求
-            const jobIds = Array.from(selectedIds);
-            fetch(`${API_BASE_URL}/send-resume`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jobIds: jobIds }) 
-            }).catch(err => console.error("后端投递接口报错 (仅演示):", err));
+            const targets = currentJobs.filter(j => selectedIds.has(j.id));
+            let done = 0;
 
-            const jobsToApply = currentJobs.filter(j => selectedIds.has(j.id));
-            let completed = 0;
-
-            for (const job of jobsToApply) {
-                await new Promise(r => setTimeout(r, 600));
+            for (const job of targets) {
+                await new Promise(r => setTimeout(r, 500));
+                done++;
+                document.getElementById('progressBar').style.width = `${(done/targets.length)*100}%`;
                 
-                const success = true; 
-                const time = new Date().toLocaleTimeString();
-                
-                const logItem = document.createElement('div');
-                logItem.className = "fade-in p-4 border-b border-slate-50 flex items-center justify-between hover:bg-slate-50";
-                logItem.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="text-green-500 font-bold">✔ Sent</span>
-                        <div class="min-w-0">
-                            <div class="font-medium text-slate-800 text-sm truncate w-40 sm:w-64" title="${job.email}">${job.email}</div>
-                        </div>
-                    </div>
-                `;
-                logContainer.prepend(logItem);
-
-                completed++;
-                const percent = Math.round((completed / jobsToApply.length) * 100);
-                progressBar.style.width = `${percent}%`;
-                progressTitle.innerText = `Sending... ${percent}%`;
+                const div = document.createElement('div');
+                div.className = "p-3 border-b border-slate-50 flex justify-between items-center text-sm fade-in";
+                div.innerHTML = `<span class="text-green-600 font-bold">✔ Sent to ${job.company}</span> <span class="text-slate-500">${job.email}</span>`;
+                log.prepend(div);
             }
-            
-            progressTitle.innerText = "Finished";
+            document.getElementById('progressTitle').innerText = "投递完成";
         }
-
+        
         function resetView() {
             document.getElementById('sending-view').classList.add('hidden');
             document.getElementById('main-view').classList.remove('hidden');
         }
-
     </script>
 </body>
 </html>
