@@ -82,13 +82,25 @@
             overflow: hidden;
         }
         .job-dropdown.open {
-            max-height: 2000px; /* 增加高度以容纳更多内容 */
+            max-height: 2000px;
             opacity: 1;
         }
         
         /* 旋转箭头 */
         .arrow-icon { transition: transform 0.3s ease; }
         .arrow-icon.rotate { transform: rotate(180deg); }
+
+        /* 选中态样式 - 高亮当前查看的岗位 */
+        .job-item.active {
+            border-left-width: 4px;
+            border-left-color: #3b82f6; /* blue-500 */
+        }
+
+        /* 复选框选中高亮 (Selected) - 增强视觉反馈 */
+        .job-item.selected {
+            background-color: #eff6ff !important; /* blue-50 */
+            border-color: #93c5fd !important; /* blue-300 */
+        }
 
     </style>
 </head>
@@ -211,13 +223,13 @@
     <script>
         // 兜底数据
         const FALLBACK_JOBS = [
-            { id: 1, company: "Marisa", title: "Solidity Engineer", salary: "1800U", date: "2023-11-01", email: "hr@marisa.io", tags: ["Dev", "Remote"], raw_content: "#Marisa\nDeFi Project recruiting...\nWe need solidity dev." },
-            { id: 2, company: "Marisa", title: "Marketing Manager", salary: "2000U", date: "2023-11-01", email: "hr@marisa.io", tags: ["Marketing"], raw_content: "#Marisa\nDeFi Project recruiting...\nWe need marketing manager." },
-            { id: 3, company: "GameFi Studio", title: "Community Mod", salary: "500U", date: "2023-10-23", email: "jobs@gamefi.com", tags: ["Community"], raw_content: "GameFi Studio hiring mods." },
+            { id: "1", company: "Marisa", title: "Solidity Engineer", salary: "1800U", date: "2023-11-01", email: "hr@marisa.io", tags: ["Dev", "Remote"], raw_content: "【岗位描述】\n需要精通Solidity..." },
+            { id: "2", company: "Marisa", title: "Marketing Manager", salary: "2000U", date: "2023-11-01", email: "hr@marisa.io", tags: ["Marketing"], raw_content: "【岗位描述】\n负责市场推广..." },
+            { id: "3", company: "GameFi Studio", title: "Community Mod", salary: "500U", date: "2023-10-23", email: "jobs@gamefi.com", tags: ["Community"], raw_content: "社区管理..." },
         ];
 
         let currentJobs = [];
-        let groupedJobs = {}; 
+        let groupedJobs = {};
         let selectedIds = new Set();
         let resumeFile = null;
         const API_BASE_URL = 'http://localhost:5000/api'; 
@@ -230,12 +242,10 @@
         async function loadJobsData() {
             const statusText = document.getElementById('statusText');
             const indicator = document.getElementById('statusIndicator');
-
             try {
                 const response = await fetch(`${API_BASE_URL}/jobs`);
                 if (!response.ok) throw new Error("API Error");
                 const data = await response.json();
-                
                 if (Array.isArray(data) && data.length > 0) {
                     currentJobs = data;
                     indicator.className = "h-2 w-2 rounded-full bg-green-500 animate-pulse";
@@ -268,8 +278,7 @@
 
             // 2. 分组：按 Company 聚合
             groupedJobs = filtered.reduce((acc, job) => {
-                // 清洗公司名，去掉 #标签
-                let cleanCompany = (job.company || "其他项目").replace(/#.*/, '').trim();
+                let cleanCompany = (job.company || "其他项目").replace(/[#＃].*/, '').trim();
                 cleanCompany = cleanCompany.replace(/[^\w\s\u4e00-\u9fa5]/g, '').trim();
                 if (!cleanCompany) cleanCompany = "其他项目";
 
@@ -290,16 +299,18 @@
             Object.keys(groupedJobs).forEach(company => {
                 const jobs = groupedJobs[company];
                 const latestDate = jobs[0].date || "";
-                // 提取公司简介 (取第一条数据的原始内容，做简单截断)
-                const introText = (jobs[0].raw_content || "暂无简介").substring(0, 300) + "...";
                 
-                const isGroupSelected = jobs.every(j => selectedIds.has(j.id));
-                const selectedCountInGroup = jobs.filter(j => selectedIds.has(j.id)).length;
+                // 默认选中第一个岗位用于展示
+                const firstJob = jobs[0];
+                const cleanFirstTitle = (firstJob.title || "岗位详情").replace(/[#＃].*/, '').trim();
+                const introText = (firstJob.raw_content || "暂无详情").replace(/[#＃]/g, '');
+                
+                const isGroupSelected = jobs.every(j => selectedIds.has(String(j.id)));
+                const selectedCountInGroup = jobs.filter(j => selectedIds.has(String(j.id))).length;
+                const safeId = company.replace(/[^a-zA-Z0-9]/g, '_') + Math.floor(Math.random() * 1000);
                 
                 const groupCard = document.createElement('div');
                 groupCard.className = "company-card bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200/50 overflow-hidden shadow-sm";
-                
-                const safeId = company.replace(/[^a-zA-Z0-9]/g, '_') + Math.floor(Math.random() * 1000);
                 
                 groupCard.innerHTML = `
                     <!-- 公司头部 -->
@@ -314,7 +325,7 @@
                                 <div class="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
                                     <span class="bg-white/50 px-2 py-0.5 rounded border border-slate-200/50">${jobs.length} 个岗位</span>
                                     <span class="text-slate-400">• ${latestDate}</span>
-                                    ${selectedCountInGroup > 0 ? `<span class="text-blue-600 font-bold ml-1">已选 ${selectedCountInGroup}</span>` : ''}
+                                    <span id="group-count-${safeId}" class="text-blue-600 font-bold ml-1 ${selectedCountInGroup > 0 ? '' : 'hidden'}">已选 ${selectedCountInGroup}</span>
                                 </div>
                             </div>
                         </div>
@@ -323,7 +334,7 @@
                                 <label for="group-chk-${safeId}" class="text-xs font-medium text-slate-500 cursor-pointer select-none">全选</label>
                                 <input type="checkbox" id="group-chk-${safeId}" 
                                        ${isGroupSelected ? 'checked' : ''} 
-                                       onchange="toggleGroupSelection('${company}', this.checked)"
+                                       onchange="toggleGroupSelection('${company}', this.checked, '${safeId}')"
                                        class="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
                             </div>
                             <div class="h-8 w-8 rounded-full bg-white flex items-center justify-center border border-slate-200 shadow-sm">
@@ -334,30 +345,42 @@
                         </div>
                     </div>
 
-                    <!-- 下拉内容区 (左右布局) -->
+                    <!-- 下拉内容区 -->
                     <div id="dropdown-${safeId}" class="job-dropdown bg-white border-t border-slate-100">
-                        <div class="flex flex-col md:flex-row gap-0 md:gap-4 p-0 md:p-4">
+                        <div class="flex flex-col md:flex-row gap-0 md:gap-4 p-0 md:p-4 min-h-[300px]">
                             
-                            <!-- 左侧：公司简介 (35%) -->
-                            <div class="md:w-[35%] bg-slate-50/50 p-4 rounded-lg border border-slate-100/50 mb-2 md:mb-0">
-                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">公司简介 / Company Intro</h4>
-                                <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-line font-sans">${introText}</p>
+                            <!-- 左侧：职位详情 -->
+                            <div class="md:w-[40%] bg-slate-50/50 p-4 rounded-lg border border-slate-100/50 mb-2 md:mb-0 sticky top-0 overflow-y-auto max-h-[500px]">
+                                <h4 id="detail-title-${safeId}" class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 border-b border-slate-200 pb-2">
+                                    ${cleanFirstTitle}
+                                </h4>
+                                <p id="detail-content-${safeId}" class="text-xs text-slate-600 leading-relaxed whitespace-pre-line font-sans">
+                                    ${introText}
+                                </p>
                             </div>
 
-                            <!-- 右侧：岗位列表 (65%) -->
-                            <div class="md:w-[65%] space-y-2">
-                                ${jobs.map(job => {
-                                    const isSel = selectedIds.has(job.id);
-                                    // 前端清洗岗位名称，去除#
-                                    let cleanTitle = (job.title || "岗位详情").replace(/#.*/, '').trim();
+                            <!-- 右侧：岗位列表 -->
+                            <div class="md:w-[60%] space-y-2">
+                                <div class="text-xs text-slate-400 mb-2 pl-1">点击下方岗位查看详情：</div>
+                                ${jobs.map((job, idx) => {
+                                    // 确保ID统一按字符串比对
+                                    const strId = String(job.id);
+                                    const isSel = selectedIds.has(strId);
+                                    let cleanTitle = (job.title || "岗位详情").replace(/[#＃].*/, '').trim();
+                                    const activeClass = idx === 0 ? 'active' : '';
+                                    const selectedClass = isSel ? 'selected' : '';
                                     return `
-                                    <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50/50 transition-colors border border-slate-100 hover:border-blue-200 bg-white">
-                                        <input type="checkbox" value="${job.id}" ${isSel ? 'checked' : ''}
-                                               onchange="toggleSingleSelection(${job.id}, this.checked)"
+                                    <div id="job-row-${strId}" 
+                                         class="job-item ${activeClass} ${selectedClass} flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50/50 transition-colors border border-slate-100 hover:border-blue-200 bg-white cursor-pointer"
+                                         onclick="selectJob(event, '${safeId}', '${strId}')">
+                                        
+                                        <input type="checkbox" id="job-chk-${strId}" value="${strId}" ${isSel ? 'checked' : ''}
+                                               onchange="toggleSingleSelection('${strId}', this.checked, '${safeId}')"
+                                               onclick="event.stopPropagation()" 
                                                class="mt-1.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 cursor-pointer">
+                                        
                                         <div class="flex-1 min-w-0">
                                             <div class="flex justify-between items-start mb-1">
-                                                <!-- 岗位名称 (标题) - 强制无 # -->
                                                 <h4 class="font-bold text-sm text-slate-800 flex-1 mr-2">${cleanTitle}</h4>
                                                 <span class="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm border border-green-200">${job.salary}</span>
                                             </div>
@@ -369,8 +392,6 @@
                                             <div class="flex flex-wrap gap-1.5">
                                                 ${(job.tags||[]).map(t => `<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 border border-slate-200">#${t}</span>`).join('')}
                                             </div>
-                                            
-                                            <!-- 已移除 原始内容预览 (Intro) -->
                                         </div>
                                     </div>
                                     `;
@@ -396,28 +417,120 @@
             }
         }
 
-        window.toggleGroupSelection = (companyName, isChecked) => {
+        function selectJob(event, safeId, jobId) {
+            // 确保ID比对一致
+            const strJobId = String(jobId);
+            let targetJob = null;
+            for (const company in groupedJobs) {
+                const found = groupedJobs[company].find(j => String(j.id) === strJobId);
+                if (found) { targetJob = found; break; }
+            }
+            if (!targetJob) return;
+
+            const titleEl = document.getElementById(`detail-title-${safeId}`);
+            const contentEl = document.getElementById(`detail-content-${safeId}`);
+            
+            if (titleEl && contentEl) {
+                contentEl.style.opacity = '0.5';
+                setTimeout(() => {
+                    const cleanTitle = (targetJob.title || "其他").replace(/[#＃].*/, '').trim();
+                    titleEl.innerText = cleanTitle;
+                    contentEl.innerText = (targetJob.raw_content || "暂无详情").replace(/[#＃]/g, '');
+                    contentEl.style.opacity = '1';
+                }, 150);
+            }
+
+            const dropdown = document.getElementById(`dropdown-${safeId}`);
+            const items = dropdown.querySelectorAll('.job-item');
+            items.forEach(item => item.classList.remove('active'));
+            const currentItem = document.getElementById(`job-row-${strJobId}`);
+            if (currentItem) currentItem.classList.add('active');
+        }
+
+        // --- 核心优化：单选逻辑 (强制String ID) ---
+        window.toggleSingleSelection = (id, isChecked, safeId) => {
+            const strId = String(id);
+            if (isChecked) {
+                selectedIds.add(strId);
+                document.getElementById(`job-row-${strId}`).classList.add('selected');
+            } else {
+                selectedIds.delete(strId);
+                document.getElementById(`job-row-${strId}`).classList.remove('selected');
+            }
+            updateGroupUI(safeId);
+            updateActionState();
+        };
+
+        // --- 核心优化：全选逻辑 (强制String ID) ---
+        window.toggleGroupSelection = (companyName, isChecked, safeId) => {
             const jobs = groupedJobs[companyName];
+            
             jobs.forEach(job => {
-                isChecked ? selectedIds.add(job.id) : selectedIds.delete(job.id);
+                const strId = String(job.id);
+                if (isChecked) {
+                    selectedIds.add(strId);
+                } else {
+                    selectedIds.delete(strId);
+                }
+                
+                const checkbox = document.getElementById(`job-chk-${strId}`);
+                if (checkbox) checkbox.checked = isChecked;
+                
+                const row = document.getElementById(`job-row-${strId}`);
+                if (row) {
+                    if (isChecked) row.classList.add('selected');
+                    else row.classList.remove('selected');
+                }
             });
-            renderJobs();
+            
+            updateGroupUI(safeId);
+            updateActionState();
         };
 
-        window.toggleSingleSelection = (id, isChecked) => {
-            isChecked ? selectedIds.add(id) : selectedIds.delete(id);
-            renderJobs();
-        };
+        function updateGroupUI(safeId) {
+            const dropdown = document.getElementById(`dropdown-${safeId}`);
+            if (!dropdown) return;
+            
+            const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+            let selectedCount = 0;
+            checkboxes.forEach(cb => {
+                if (cb.checked) selectedCount++;
+            });
+            
+            const countEl = document.getElementById(`group-count-${safeId}`);
+            if (countEl) {
+                countEl.innerText = `已选 ${selectedCount}`;
+                if (selectedCount > 0) countEl.classList.remove('hidden');
+                else countEl.classList.add('hidden');
+            }
+            
+            const groupCheckbox = document.getElementById(`group-chk-${safeId}`);
+            if (groupCheckbox) {
+                if (selectedCount === 0) {
+                    groupCheckbox.checked = false;
+                    groupCheckbox.indeterminate = false;
+                } else if (selectedCount === checkboxes.length) {
+                    groupCheckbox.checked = true;
+                    groupCheckbox.indeterminate = false;
+                } else {
+                    groupCheckbox.checked = false;
+                    groupCheckbox.indeterminate = true;
+                }
+            }
+        }
 
+        // 全选所有（页面顶部按钮）
         function toggleSelectAll() {
             const allJobs = Object.values(groupedJobs).flat();
-            const allSelected = allJobs.every(j => selectedIds.has(j.id));
+            // 使用 String(j.id) 确保比对正确
+            const allSelected = allJobs.every(j => selectedIds.has(String(j.id)));
+            
             if (allSelected) {
-                allJobs.forEach(j => selectedIds.delete(j.id));
+                allJobs.forEach(j => selectedIds.delete(String(j.id)));
             } else {
-                allJobs.forEach(j => selectedIds.add(j.id));
+                allJobs.forEach(j => selectedIds.add(String(j.id)));
             }
-            renderJobs();
+            renderJobs(); 
         }
 
         function clearAllSelections() {
@@ -473,14 +586,14 @@
             const log = document.getElementById('logContainer');
             log.innerHTML = '';
             
-            const targets = currentJobs.filter(j => selectedIds.has(j.id));
+            // 确保过滤时也用 String(id)
+            const targets = currentJobs.filter(j => selectedIds.has(String(j.id)));
+            
             let done = 0;
-
             for (const job of targets) {
                 await new Promise(r => setTimeout(r, 500));
                 done++;
                 document.getElementById('progressBar').style.width = `${(done/targets.length)*100}%`;
-                
                 const div = document.createElement('div');
                 div.className = "p-3 border-b border-slate-50 flex justify-between items-center text-sm fade-in";
                 div.innerHTML = `<span class="text-green-600 font-bold">✔ Sent to ${job.company}</span> <span class="text-slate-500">${job.email}</span>`;

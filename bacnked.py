@@ -5,6 +5,7 @@ import re
 import datetime
 import time
 import traceback
+import uuid  # 新增: 用于生成唯一ID
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -19,21 +20,14 @@ PROXY = None
 class JobParser:
     @staticmethod
     def clean_string(text):
-        """
-        深度清洗字符串：
-        1. 去除 #标签 (如 '#CEX')
-        2. 去除 Emoji
-        3. 去除多余空格
-        """
+        """深度清洗字符串"""
         if not text: return ""
-        
-        # 去除 #后面的所有内容 (包括 #本身)
-        # 例如: "OneBullEx #CEX" -> "OneBullEx"
-        text = re.sub(r'#.*', '', text)
-        
-        # 去除 Emoji (简单范围)
-        text = re.sub(r'[^\w\s\u4e00-\u9fa5:：\.\-\(\)]', '', text)
-        
+        # 1. 去除 #及其后面的内容
+        text = re.sub(r'[#＃].*', '', text)
+        # 2. 去除 Emoji
+        text = re.sub(r'[^\w\s\u4e00-\u9fa5:：\.\-\(\)\+]', '', text)
+        # 3. 去除常见前缀
+        text = re.sub(r'^[【\[]?(?:招聘|岗位|职位|Job|Hiring|Position)[\]】]?[:：]?\s*', '', text, flags=re.IGNORECASE)
         return text.strip()
 
     @staticmethod
@@ -48,13 +42,10 @@ class JobParser:
                     break
         
         if not target_line: return "面议"
-
         numbers = re.findall(r'(\d+)', target_line)
         if not numbers: return target_line
-
         nums = [int(n) for n in numbers]
         valid_nums = [n for n in nums if (n > 100 and n < 100000) or (n < 100 and 'k' in target_line.lower())]
-        
         if not valid_nums: return target_line
         max_val = max(valid_nums)
         
@@ -63,7 +54,6 @@ class JobParser:
         if "u" in lower_line: unit = "U"
         elif "$" in target_line: unit = "$"
         elif "k" in lower_line: unit = "k"
-        
         if unit == "k" and max_val < 1000: return f"{max_val}k"
         return f"{max_val}{unit}"
 
@@ -76,6 +66,10 @@ class JobParser:
             for br in text_div.find_all("br"): br.replace_with("\n")
             raw_text = text_div.get_text()
 
+            # --- 核心过滤逻辑：必须包含 #招聘 标签 ---
+            if "#招聘" not in raw_text and "＃招聘" not in raw_text:
+                return None
+
             time_span = msg_div.find('a', class_='tgme_widget_message_date')
             date_str = datetime.date.today().strftime("%Y-%m-%d")
             if time_span:
@@ -83,11 +77,19 @@ class JobParser:
                 if time_tag and time_tag.has_attr('datetime'):
                     date_str = time_tag['datetime'].split('T')[0]
 
+            # 提取标签
+            hashtags = re.findall(r'[#＃]([\w\-\.\+\u4e00-\u9fa5]+)', raw_text)
+
+            # 生成绝对唯一 ID (防止 ID 冲突导致选不中)
+            unique_id = msg_div.get('data-post-id')
+            if not unique_id:
+                unique_id = f"{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+
             job_data = {
-                "id": msg_div.get('data-post-id', str(int(time.time()))),
+                "id": unique_id,
                 "date": date_str,
                 "raw_content": raw_text,
-                "tags": [],
+                "tags": hashtags,
                 "type": "全职",
                 "location": "远程",
                 "email": "",
@@ -100,49 +102,62 @@ class JobParser:
             found_company = None
             found_title = None
             
+            # 关键词白名单
+            job_keywords = [
+                "工程师", "运营", "市场", "实习生", "BD", "专员", "经理", "设计师", "交易员", "负责人"
+            ]
+
+            # 标签黑名单
+            blacklist_tags = [
+                "research", "socialfi", "defi", "web3", "crypto", "blockchain", "gamefi", "nft", "dao",
+                "headhunter", "recruiter", "hiring", "job", "fulltime", "parttime", "remote", "apply",
+                "work", "career", "talent", "exchange", "wallet", "public", "chain", "infrastructure"
+            ]
+
+            # 1. 找公司
             for line in lines:
-                # 1. 识别公司/项目
                 if not found_company:
                     company_match = re.match(r'^(?:项目|Project|公司|Company|Team)\s*[:：]\s*(.+)', line, re.IGNORECASE)
                     if company_match:
-                        # 核心修改：立即清洗公司名
                         found_company = JobParser.clean_string(company_match.group(1))
-                        continue 
-
-                # 2. 识别岗位
-                if not found_title:
-                    job_match = re.match(r'^(?:岗位|职位|Job|Role|Position)\s*[:：]\s*(.+)', line, re.IGNORECASE)
-                    if job_match:
-                        found_title = JobParser.clean_string(job_match.group(1))
-                        continue
-
-            # 3. 智能兜底 (第一行通常是公司名)
-            if not found_company and not found_title:
-                for line in lines:
-                    if not line.startswith('#') and len(line) < 40 and "招聘" not in line:
-                        found_company = JobParser.clean_string(line)
                         break
             
-            # 4. 如果有公司没岗位，尝试找剩下的第一行文本
-            if found_company and not found_title:
+            if not found_company:
                 for line in lines:
-                    cleaned_line = JobParser.clean_string(line)
-                    # 确保不是公司名本身，且长度合适
-                    if cleaned_line != found_company and not line.startswith('#') and len(line) < 50 and "招聘" not in line:
-                        if not re.search(r'\d+k', line.lower()) and '@' not in line:
-                            found_title = cleaned_line
-                            break
-            
-            job_data["company"] = found_company if found_company else "其他项目"
-            job_data["title"] = found_title if found_title else "查看详情"
+                    if not line.startswith('#') and not line.startswith('＃') and len(line) < 40 and "招聘" not in line:
+                        found_company = JobParser.clean_string(line)
+                        break
 
-            job_data["salary"] = JobParser.extract_max_salary(raw_text)
+            # 2. 找岗位 (Tag Only)
+            target_tag = None
+            for tag in hashtags:
+                tag_lower = tag.lower()
+                is_blacklisted = False
+                for bad_word in blacklist_tags:
+                    if bad_word in tag_lower:
+                        is_blacklisted = True
+                        break
+                if is_blacklisted:
+                    continue
+                
+                for keyword in job_keywords:
+                    if keyword.lower() in tag_lower:
+                        target_tag = tag
+                        break
+                if target_tag:
+                    break
             
+            if target_tag:
+                found_title = target_tag
+            else:
+                found_title = "其他"
+
+            job_data["company"] = found_company if found_company else "其他项目"
+            job_data["title"] = found_title
+            job_data["salary"] = JobParser.extract_max_salary(raw_text)
             email_match = re.search(r'[\w\.-]+@[\w\.-]+\.[a-zA-Z]+', raw_text)
             job_data["email"] = email_match.group(0) if email_match else ""
 
-            hashtags = re.findall(r'#(\w+)', raw_text)
-            job_data["tags"] = hashtags
             for tag in hashtags:
                 if "兼职" in tag: job_data["type"] = "兼职"
                 if "实习" in tag: job_data["type"] = "实习"
@@ -161,7 +176,6 @@ class WebScraper:
 
     def fetch_jobs(self, lookback_days=60):
         print(f"[*] 启动 Web 抓取: {self.base_url}")
-        
         all_jobs = []
         target_url = self.base_url
         cutoff_date = datetime.datetime.now() - datetime.timedelta(days=lookback_days)
@@ -191,7 +205,6 @@ class WebScraper:
                                     self.cached_jobs = all_jobs + page_jobs
                                     return self.cached_jobs
                             except: pass
-                        
                         if job['email'] or len(job['raw_content']) > 20:
                             page_jobs.append(job)
                 
