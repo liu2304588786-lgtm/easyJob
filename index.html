@@ -133,11 +133,41 @@
                         <div class="relative w-full md:w-1/3">
                             <input type="text" id="searchInput" placeholder="搜索公司、岗位..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
                         </div>
-                        <div class="flex gap-2 w-full md:w-auto overflow-x-auto">
-                            <select id="categorySelect" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-pointer">
-                                <option value="All">所有岗位</option>
-                                <option value="Dev">开发 (Dev)</option>
-                                <option value="Marketing">市场 (Marketing)</option>
+                        <div class="flex gap-2 w-full md:w-auto overflow-x-auto flex-wrap">
+                            <!-- 工作类型筛选 -->
+                            <select id="typeFilter" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-pointer">
+                                <option value="All">工作类型: 全部</option>
+                                <option value="全职">全职</option>
+                                <option value="兼职">兼职</option>
+                                <option value="实习">实习</option>
+                                <option value="项目制">项目制</option>
+                            </select>
+
+                            <!-- 薪资筛选 -->
+                            <select id="salaryFilter" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-pointer">
+                                <option value="All">薪资: 全部</option>
+                                <option value="0-1000">0-1000</option>
+                                <option value="1000-3000">1000-3000</option>
+                                <option value="3000-5000">3000-5000</option>
+                                <option value="5000+">5000+</option>
+                            </select>
+
+                            <!-- 地点筛选 -->
+                            <select id="locationFilter" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-pointer">
+                                <option value="All">地点: 全部</option>
+                                <option value="远程">远程</option>
+                                <option value="混合">混合</option>
+                                <option value="现场">现场</option>
+                            </select>
+
+                            <!-- 标签筛选 -->
+                            <select id="tagFilter" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 cursor-pointer">
+                                <option value="All">标签: 全部</option>
+                                <option value="开发">开发</option>
+                                <option value="运营">运营</option>
+                                <option value="市场">市场</option>
+                                <option value="设计">设计</option>
+                                <option value="BD">商务拓展</option>
                             </select>
                         </div>
                     </div>
@@ -186,14 +216,23 @@
                 
                 <div class="space-y-3">
                     <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">邮箱服务商</label>
-                        <select id="smtpProvider" onchange="updateSmtpConfig()" class="w-full border rounded p-2 text-sm">
-                            <option value="qq">QQ邮箱 (推荐)</option>
-                            <option value="gmail">Gmail</option>
-                            <option value="163">163网易邮箱</option>
-                            <option value="custom">自定义</option>
+                        <label class="block text-xs font-medium text-slate-700 mb-1">发送方式</label>
+                        <select id="sendMethod" onchange="updateSendMethod()" class="w-full border rounded p-2 text-sm">
+                            <option value="smtp">SMTP授权码</option>
+                            <option value="gmail-oauth2">Gmail OAuth2 (推荐)</option>
                         </select>
                     </div>
+
+                    <div id="smtpConfig" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 mb-1">邮箱服务商</label>
+                            <select id="smtpProvider" onchange="updateSmtpConfig()" class="w-full border rounded p-2 text-sm">
+                                <option value="qq">QQ邮箱</option>
+                                <option value="gmail">Gmail</option>
+                                <option value="163">163网易邮箱</option>
+                                <option value="custom">自定义</option>
+                            </select>
+                        </div>
                     
                     <div class="flex gap-2">
                         <div class="flex-1">
@@ -217,6 +256,21 @@
                             <a href="https://docs.qq.com/doc/DYnFHQXVRc1ZLWHZW" target="_blank" class="text-blue-500 hover:underline">如何获取?</a>
                         </label>
                         <input type="password" id="smtpPass" placeholder="不是登录密码！是16位授权码" class="w-full border rounded p-2 text-sm">
+                    </div>
+                    </div> <!-- 结束 smtpConfig -->
+
+                    <div id="oauth2Config" class="space-y-3 hidden">
+                        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div id="oauth2Status" class="h-2 w-2 rounded-full bg-yellow-500"></div>
+                                <span id="oauth2StatusText" class="text-xs font-medium">未授权</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mb-3">使用Gmail OAuth2无需授权码，只需点击下方按钮授权即可。</p>
+                            <button onclick="startOAuth2Auth()" class="w-full py-2 px-3 rounded text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                                授权Gmail账户
+                            </button>
+                            <p class="text-xs text-slate-500 mt-2">授权后，系统将使用您的Gmail账户发送邮件。</p>
+                        </div>
                     </div>
                 </div>
 
@@ -263,19 +317,300 @@
             renderJobs();
         }
 
-        // ... (保持 renderJobs, toggleDropdown, selectJob, toggleSingle/GroupSelection, toggleSelectAll, clearAllSelections, updateActionState, setupEventListeners 逻辑不变) ...
-        // 注意：这里为了节省篇幅省略了未修改的函数，实际使用时请保留之前的完整 JS 代码，只替换下面的投递逻辑部分
+        // 辅助函数：解析薪资数字，返回对象包含值和单位
+        function parseSalary(salaryStr) {
+            if (!salaryStr || salaryStr === '面议') return {value: 0, unit: 'unknown', original: salaryStr};
+            // 提取数字部分
+            const match = salaryStr.match(/(\d+(?:\.\d+)?)/);
+            if (!match) return {value: 0, unit: 'unknown', original: salaryStr};
+            let value = parseFloat(match[1]);
+            let unit = 'cny'; // 默认人民币
+
+            // 检测单位
+            const lowerStr = salaryStr.toLowerCase();
+            // 先处理k单位（千）
+            if (lowerStr.includes('k')) {
+                value = value * 1000; // "5k" -> 5000, "5k U" -> 5000
+            }
+            // 检测货币单位
+            if (lowerStr.includes('u') || salaryStr.includes('$')) {
+                unit = 'usd';
+            } else if (lowerStr.includes('k')) {
+                // 如果只有k没有u/$，单位保持cny（人民币）
+                unit = 'cny';
+            }
+            // 返回原始数值（或乘以1000后的值），不进行货币换算
+            return {value: value, unit: unit, original: salaryStr};
+        }
+
+        // 获取薪资数值（兼容旧代码）
+        function getSalaryValue(salaryStr) {
+            const parsed = parseSalary(salaryStr);
+            return parsed.value;
+        }
+
+        // 辅助函数：检查是否匹配筛选条件
+        function matchesFilters(job) {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const typeVal = document.getElementById('typeFilter').value;
+            const salaryVal = document.getElementById('salaryFilter').value;
+            const locationVal = document.getElementById('locationFilter').value;
+            const tagVal = document.getElementById('tagFilter').value;
+
+            // 搜索条件
+            if (searchVal && !(job.company + job.title + (job.raw_content || '')).toLowerCase().includes(searchVal)) {
+                return false;
+            }
+
+            // 工作类型筛选
+            if (typeVal !== 'All' && job.type !== typeVal) {
+                return false;
+            }
+
+            // 薪资筛选
+            if (salaryVal !== 'All') {
+                const salary = getSalaryValue(job.salary || '0');
+                if (salaryVal === '0-1000' && (salary < 0 || salary > 1000)) return false;
+                if (salaryVal === '1000-3000' && (salary < 1000 || salary > 3000)) return false;
+                if (salaryVal === '3000-5000' && (salary < 3000 || salary > 5000)) return false;
+                if (salaryVal === '5000+' && salary < 5000) return false;
+            }
+
+            // 地点筛选（从location字段或raw_content中判断）
+            if (locationVal !== 'All') {
+                const location = job.location || '';
+                const content = job.raw_content || '';
+                if (locationVal === '远程' && !location.includes('远程') && !content.includes('远程')) return false;
+                if (locationVal === '混合' && !content.includes('混合')) return false;
+                if (locationVal === '现场' && !content.includes('现场')) return false;
+            }
+
+            // 标签筛选
+            if (tagVal !== 'All') {
+                const tags = job.tags || [];
+                const content = job.raw_content || '';
+                const title = job.title || '';
+                // 检查tags数组或内容中是否包含标签
+                let hasTag = false;
+                if (tagVal === '开发') {
+                    // 对于"开发"标签，同时匹配"开发"、"工程师"和英文变体
+                    const devKeywords = ['开发', '工程师', 'dev', 'engineer'];
+                    const contentLower = content.toLowerCase();
+                    const titleLower = title.toLowerCase();
+                    hasTag = tags.some(tag => {
+                        const tagStr = tag.toLowerCase();
+                        return devKeywords.some(keyword => tagStr.includes(keyword));
+                    }) || devKeywords.some(keyword => {
+                        const kwLower = keyword.toLowerCase();
+                        return contentLower.includes(kwLower) || titleLower.includes(kwLower);
+                    });
+                } else {
+                    hasTag = tags.some(tag => tag.includes(tagVal)) ||
+                             content.includes(tagVal) ||
+                             title.includes(tagVal);
+                }
+                if (!hasTag) return false;
+            }
+
+            return true;
+        }
+
+        // 提取关键信息函数
+        function extractKeyInfo(rawContent) {
+            if (!rawContent) return { summary: '', responsibilities: [], requirements: [], contact: '' };
+
+            const content = rawContent.replace(/[#＃]/g, '');
+            const lines = content.split('\n').filter(line => line.trim());
+
+            let summary = '';
+            const responsibilities = [];
+            const requirements = [];
+            let contact = '';
+            let salary = '';
+
+            // 识别关键部分
+            let currentSection = '';
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+
+                // 识别章节标题
+                if (trimmed.includes('简介') || trimmed.includes('介绍') || trimmed.includes('About') || trimmed.includes('Intro')) {
+                    currentSection = 'intro';
+                } else if (trimmed.includes('职责') || trimmed.includes('Responsibility') || trimmed.includes('岗位职责')) {
+                    currentSection = 'responsibility';
+                } else if (trimmed.includes('要求') || trimmed.includes('Requirement') || trimmed.includes('任职要求')) {
+                    currentSection = 'requirement';
+                } else if (trimmed.includes('薪资') || trimmed.includes('待遇') || trimmed.includes('Salary') || trimmed.includes('Pay')) {
+                    currentSection = 'salary';
+                } else if (trimmed.includes('联系') || trimmed.includes('Contact') || trimmed.includes('申请') || trimmed.includes('Apply')) {
+                    currentSection = 'contact';
+                }
+
+                // 提取信息
+                if (currentSection === 'intro' && !summary && trimmed.length > 10 && trimmed.length < 200) {
+                    summary = trimmed;
+                } else if (currentSection === 'responsibility' && trimmed.length > 5) {
+                    // 提取职责项（通常以数字、•、-开头）
+                    if (/^[0-9①②③④⑤⑥⑦⑧⑨⑩•\-➢▶]/u.test(trimmed) || trimmed.includes('负责') || trimmed.includes('需要')) {
+                        responsibilities.push(trimmed.replace(/^[0-9①②③④⑤⑥⑦⑧⑨⑩\.•\-➢▶\s]+/, '').substring(0, 100));
+                    }
+                } else if (currentSection === 'requirement' && trimmed.length > 5) {
+                    // 提取要求项
+                    if (/^[0-9①②③④⑤⑥⑦⑧⑨⑩•\-➢▶]/u.test(trimmed) || trimmed.includes('要求') || trimmed.includes('具备')) {
+                        requirements.push(trimmed.replace(/^[0-9①②③④⑤⑥⑦⑧⑨⑩\.•\-➢▶\s]+/, '').substring(0, 100));
+                    }
+                } else if (currentSection === 'contact' && !contact && trimmed.includes('@')) {
+                    contact = trimmed;
+                } else if (currentSection === 'salary' && !salary && trimmed.includes('$') || trimmed.includes('U') || trimmed.includes('k')) {
+                    salary = trimmed;
+                }
+            }
+
+            // 限制数量
+            const limitedResponsibilities = responsibilities.slice(0, 3);
+            const limitedRequirements = requirements.slice(0, 3);
+
+            return {
+                summary: summary || (lines.length > 0 ? lines[0].substring(0, 150) + '...' : ''),
+                responsibilities: limitedResponsibilities,
+                requirements: limitedRequirements,
+                contact: contact || '',
+                salary: salary || ''
+            };
+        }
+
+        // 格式化薪资显示
+        function formatSalary(salaryStr) {
+            if (!salaryStr || salaryStr === '面议') return '面议';
+
+            // 提取数字和单位
+            const match = salaryStr.match(/([\d,\.]+)([kKU\$]?)/);
+            if (!match) return salaryStr;
+
+            const amount = parseFloat(match[1].replace(',', ''));
+            const unit = match[2].toUpperCase();
+
+            if (unit === 'K') {
+                return `${amount}k`;
+            } else if (unit === 'U' || unit === '$') {
+                return `$${amount}`;
+            } else if (amount > 1000) {
+                return `${(amount / 1000).toFixed(1)}k`;
+            }
+
+            return `${amount}`;
+        }
+
+        // 保护邮箱地址
+        function protectEmail(email) {
+            if (!email) return '';
+            const [local, domain] = email.split('@');
+            if (!local || !domain) return email;
+            if (local.length <= 2) return email;
+            return `${local.substring(0, 2)}***@${domain}`;
+        }
+
+        // 从原始内容中提取公司域名
+        function extractCompanyDomain(rawContent) {
+            if (!rawContent) return null;
+            // 查找常见的网址模式，匹配更完整的域名
+            const urlRegex = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])+)/gi;
+            const matches = [];
+            let match;
+            while ((match = urlRegex.exec(rawContent)) !== null) {
+                matches.push(match[0]);
+            }
+
+            if (!matches || matches.length === 0) return null;
+
+            // 取第一个匹配的域名，清理可能的路径和参数
+            let domain = matches[0];
+            // 移除协议部分
+            domain = domain.replace(/^https?:\/\//i, '');
+            // 移除www.前缀
+            domain = domain.replace(/^www\./i, '');
+            // 移除路径和查询参数
+            domain = domain.split('/')[0];
+            domain = domain.split('?')[0];
+
+            // 验证域名格式
+            const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])+$/;
+            return domainRegex.test(domain) ? domain : null;
+        }
+
+        // 根据公司名称生成颜色
+        function getCompanyColor(companyName) {
+            if (!companyName) return 'bg-blue-600';
+            // 简单的哈希函数生成颜色索引
+            let hash = 0;
+            for (let i = 0; i < companyName.length; i++) {
+                hash = companyName.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const colors = [
+                'bg-blue-600', 'bg-green-600', 'bg-purple-600', 'bg-pink-600',
+                'bg-indigo-600', 'bg-teal-600', 'bg-orange-600', 'bg-red-600'
+            ];
+            const index = Math.abs(hash) % colors.length;
+            return colors[index];
+        }
+
+        // 获取公司图标URL
+        function getCompanyLogo(companyName, rawContent) {
+            // 首先尝试从内容中提取域名
+            const domain = extractCompanyDomain(rawContent);
+            if (domain) {
+                // 使用Google的favicon服务
+                return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+            }
+
+            // 如果没有域名，则根据公司名称返回颜色首字母
+            // 这里可以扩展为使用其他API或服务
+            return null;
+        }
+
+        // 计算相对时间
+        function getRelativeTime(dateStr) {
+            if (!dateStr) return '';
+            try {
+                const jobDate = new Date(dateStr);
+                const now = new Date();
+                const diffDays = Math.floor((now - jobDate) / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 0) return '今天';
+                if (diffDays === 1) return '昨天';
+                if (diffDays < 7) return `${diffDays}天前`;
+                if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`;
+                return `${Math.floor(diffDays / 30)}月前`;
+            } catch {
+                return dateStr;
+            }
+        }
+
+        // 生成标签徽章
+        function generateTagBadges(tags) {
+            if (!tags || !Array.isArray(tags)) return '';
+
+            const importantTags = tags.filter(tag =>
+                !['招聘', '全职', '兼职', '实习', '远程', '项目制'].includes(tag)
+            ).slice(0, 3);
+
+            return importantTags.map(tag =>
+                `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded mr-1 mb-1">${tag}</span>`
+            ).join('');
+        }
 
         function renderJobs() {
             const listEl = document.getElementById('jobList');
-            const searchVal = document.getElementById('searchInput').value.toLowerCase();
-            const catVal = document.getElementById('categorySelect').value;
-            const filtered = currentJobs.filter(j => (j.company+j.title).toLowerCase().includes(searchVal));
+
+            // 应用所有筛选条件
+            const filtered = currentJobs.filter(matchesFilters);
+
             groupedJobs = filtered.reduce((acc, j) => {
                 let c = (j.company||"其他").replace(/[#＃].*/, '').trim();
                 if(!acc[c]) acc[c]=[]; acc[c].push(j); return acc;
             }, {});
-            
+
             document.getElementById('jobCount').innerText = `${Object.keys(groupedJobs).length} 组 / ${filtered.length} 个`;
             listEl.innerHTML = '';
             
@@ -284,13 +619,24 @@
                 const safeId = company.replace(/[^a-zA-Z0-9]/g, '_') + Math.floor(Math.random()*1000);
                 const isGroupSel = jobs.every(j => selectedIds.has(String(j.id)));
                 const selCount = jobs.filter(j => selectedIds.has(String(j.id))).length;
-                
+
+                // 获取公司LOGO URL（使用第一个岗位的原始内容）
+                const logoUrl = getCompanyLogo(company, jobs[0]?.raw_content || '');
+                const companyColor = getCompanyColor(company);
+
                 const card = document.createElement('div');
                 card.className = "company-card bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200/50 overflow-hidden shadow-sm mb-3";
                 card.innerHTML = `
                     <div class="p-4 cursor-pointer flex justify-between items-center bg-slate-50/80 hover:bg-slate-100" onclick="toggleDropdown('${safeId}')">
                         <div class="flex items-center gap-4">
-                            <div class="h-10 w-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg">${company[0].toUpperCase()}</div>
+                            <div class="h-10 w-10 rounded-lg flex items-center justify-center relative overflow-hidden ${logoUrl ? 'bg-white border border-slate-200' : companyColor + ' text-white'}" id="logo-container-${safeId}">
+                                ${logoUrl ?
+                                    `<img src="${logoUrl}" alt="${company}" class="h-full w-full object-contain"
+                                         onerror="document.getElementById('logo-fallback-${safeId}').classList.remove('hidden'); this.style.display='none'">`
+                                    : ''
+                                }
+                                <span id="logo-fallback-${safeId}" class="${logoUrl ? 'hidden' : ''} font-bold text-lg">${company[0].toUpperCase()}</span>
+                            </div>
                             <div>
                                 <h3 class="font-bold text-slate-800">${company}</h3>
                                 <div class="text-xs text-slate-500">${jobs.length} 岗位 <span id="group-count-${safeId}" class="text-blue-600 font-bold ml-1 ${selCount>0?'':'hidden'}">已选 ${selCount}</span></div>
@@ -304,10 +650,56 @@
                         </div>
                     </div>
                     <div id="dropdown-${safeId}" class="job-dropdown bg-white border-t border-slate-100">
-                        <div class="flex flex-col md:flex-row gap-4 p-4 min-h-[200px]">
+                        <div class="flex flex-col md:flex-row gap-4 p-4 min-h-[140px]">
                             <div class="md:w-[35%] bg-slate-50 p-4 rounded text-xs text-slate-600">
-                                <h4 id="dt-${safeId}" class="font-bold mb-2 border-b pb-1">${jobs[0].title}</h4>
-                                <p id="dc-${safeId}">${(jobs[0].raw_content||"").replace(/[#＃]/g,'')}</p>
+                                <div class="mb-3">
+                                    <h4 id="dt-${safeId}" class="font-bold mb-1 text-base">${jobs[0].title}</h4>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="px-2 py-0.5 text-xs rounded ${jobs[0].type === '全职' ? 'bg-blue-100 text-blue-800' : jobs[0].type === '兼职' ? 'bg-purple-100 text-purple-800' : jobs[0].type === '实习' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                            ${jobs[0].type || '全职'}
+                                        </span>
+                                        <span class="text-xs text-slate-500">
+                                            ${getRelativeTime(jobs[0].date)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div id="dc-${safeId}" class="space-y-3">
+                                    ${(() => {
+                                        const keyInfo = extractKeyInfo(jobs[0].raw_content);
+                                        const tags = jobs[0].tags || [];
+                                        let html = '';
+
+                                        // 简化的公司简介（限制长度）
+                                        if (keyInfo.summary) {
+                                            const maxLength = 120;
+                                            const displaySummary = keyInfo.summary.length > maxLength
+                                                ? keyInfo.summary.substring(0, maxLength) + '...'
+                                                : keyInfo.summary;
+                                            html += `<div class="mb-3">
+                                                <div class="text-slate-600 text-xs leading-relaxed">${displaySummary}</div>
+                                            </div>`;
+                                        }
+
+                                        // 标签（更紧凑的显示）
+                                        if (tags.length > 0) {
+                                            html += `<div class="mt-3">
+                                                <div class="flex flex-wrap gap-1">
+                                                    ${tags.slice(0, 5).map(tag =>
+                                                        `<span class="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded">${tag}</span>`
+                                                    ).join('')}
+                                                </div>
+                                            </div>`;
+                                        }
+
+                                        // 如果既没有简介也没有标签，显示简短的提示
+                                        if (!keyInfo.summary && tags.length === 0) {
+                                            html += `<div class="text-slate-400 text-xs italic">点击右侧岗位查看详情</div>`;
+                                        }
+
+                                        return html;
+                                    })()}
+                                </div>
                             </div>
                             <div class="md:w-[65%] space-y-2">
                                 ${jobs.map((j,i) => `
@@ -392,13 +784,67 @@
             document.getElementById('resumeInput').addEventListener('change', (e)=>{
                 if(e.target.files[0]){ resumeFile=e.target.files[0]; document.getElementById('uploadPlaceholder').classList.add('hidden'); document.getElementById('fileInfo').classList.remove('hidden'); document.getElementById('fileName').innerText=resumeFile.name; updateActionState(); }
             });
-            ['searchInput','categorySelect'].forEach(id=>document.getElementById(id).addEventListener('input', renderJobs));
+            // 所有筛选器都触发重新渲染
+            ['searchInput', 'typeFilter', 'salaryFilter', 'locationFilter', 'tagFilter'].forEach(id =>
+                document.getElementById(id).addEventListener('input', renderJobs)
+            );
+            ['typeFilter', 'salaryFilter', 'locationFilter', 'tagFilter'].forEach(id =>
+                document.getElementById(id).addEventListener('change', renderJobs)
+            );
         }
 
         // --- 新增 Modal 逻辑 ---
         function showConfigModal() { document.getElementById('config-modal').classList.remove('hidden'); }
         function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden'); }
         
+        function updateSendMethod() {
+            const method = document.getElementById('sendMethod').value;
+            const smtpConfig = document.getElementById('smtpConfig');
+            const oauth2Config = document.getElementById('oauth2Config');
+
+            if (method === 'smtp') {
+                smtpConfig.classList.remove('hidden');
+                oauth2Config.classList.add('hidden');
+            } else if (method === 'gmail-oauth2') {
+                smtpConfig.classList.add('hidden');
+                oauth2Config.classList.remove('hidden');
+                // 检查OAuth2授权状态
+                checkOAuth2Status();
+            }
+        }
+
+        async function checkOAuth2Status() {
+            try {
+                const response = await fetch('/api/oauth2/status');
+                const data = await response.json();
+                if (data.status === 'authorized') {
+                    document.getElementById('oauth2Status').className = 'h-2 w-2 rounded-full bg-green-500';
+                    document.getElementById('oauth2StatusText').textContent = '已授权';
+                } else {
+                    document.getElementById('oauth2Status').className = 'h-2 w-2 rounded-full bg-yellow-500';
+                    document.getElementById('oauth2StatusText').textContent = '未授权';
+                }
+            } catch (e) {
+                console.error('检查OAuth2状态失败:', e);
+            }
+        }
+
+        async function startOAuth2Auth() {
+            try {
+                const response = await fetch('/api/oauth2/auth');
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // 在新窗口打开授权页面
+                    window.open(data.auth_url, 'oauth2_window', 'width=600,height=700');
+                } else {
+                    alert('OAuth2配置错误: ' + data.msg);
+                }
+            } catch (e) {
+                console.error('启动OAuth2授权失败:', e);
+                alert('启动授权失败: ' + e.message);
+            }
+        }
+
         function updateSmtpConfig() {
             const type = document.getElementById('smtpProvider').value;
             const hostEl = document.getElementById('smtpHost');
@@ -417,19 +863,29 @@
             document.getElementById('sending-view').classList.remove('hidden');
             const logContainer = document.getElementById('logContainer');
             logContainer.innerHTML = '<div class="text-center p-10 text-gray-500 animate-pulse">正在连接邮件服务器，请稍候...</div>';
-            
+
+            const method = document.getElementById('sendMethod').value;
             const formData = new FormData();
             formData.append('resume', resumeFile);
             formData.append('jobIds', JSON.stringify(Array.from(selectedIds)));
-            formData.append('smtp_user', document.getElementById('smtpUser').value);
-            formData.append('smtp_pass', document.getElementById('smtpPass').value);
-            formData.append('smtp_host', document.getElementById('smtpHost').value);
-            formData.append('smtp_port', document.getElementById('smtpPort').value);
+
+            let apiUrl;
+            if (method === 'smtp') {
+                // SMTP方式
+                formData.append('smtp_user', document.getElementById('smtpUser').value);
+                formData.append('smtp_pass', document.getElementById('smtpPass').value);
+                formData.append('smtp_host', document.getElementById('smtpHost').value);
+                formData.append('smtp_port', document.getElementById('smtpPort').value);
+                apiUrl = `${API_BASE_URL}/send-resume`;
+            } else if (method === 'gmail-oauth2') {
+                // Gmail OAuth2方式
+                apiUrl = `${API_BASE_URL}/send-resume-gmail`;
+            }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/send-resume`, { method: 'POST', body: formData });
+                const response = await fetch(apiUrl, { method: 'POST', body: formData });
                 const result = await response.json();
-                
+
                 if (result.status === 'success') {
                     document.getElementById('progressBar').style.width = '100%';
                     document.getElementById('progressTitle').innerText = "任务完成";
